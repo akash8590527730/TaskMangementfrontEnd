@@ -1,63 +1,84 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import TaskList from '../Components/Task/TaskList'
+import axios from 'axios';
+import Header from './Header';
+import image from '../assets/notask.png'
 
 const Dashboard = () => {
+  const [tasks, setTasks] = useState([]);  
+  const [loading, setLoading] = useState(true);  
+  const [error, setError] = useState('');  
+  const navigate = useNavigate();  
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');  
+    if (!token) {
+      navigate('/login');  
+    } else {
+      const fetchTasks = async () => {
+        try {
+          const response = await axios.get('http://localhost:5000/api/tasks', {
+            headers: {
+              Authorization: `Bearer ${token}`,  
+            
+            },
+          });
+          setTasks(response.data);  
+          setLoading(false);  
+        } catch (error) {
+          setError('Failed to fetch tasks. Please try again later.');  
+          setLoading(false); 
+        }
+      };
+      fetchTasks();
+    }
+  }, [navigate]);  
+
+  const handleDelete = (taskId) => {
+    setTasks(tasks.filter(task => task._id !== taskId));  
+  };
+
   return (
-    <div class="bg-gray-50 min-h-screen">
+    <>
+      <Header />
+      <div className="min-h-screen bg-gray-50">
+        <main className="max-w-7xl mx-auto p-6">
+          <div className="flex justify-end mb-6">
+            <button
+              onClick={() => navigate('/taskform')}
+              className="bg-gradient-to-r from-green-600 to-green-800 text-white px-6 py-3 rounded-lg shadow-lg hover:from-green-700 hover:to-green-900 transition duration-300"
+            >
+              <span className="font-semibold">+ Add Task</span>
+            </button>
+          </div>
 
-    <header class="bg-blue-600 text-white p-4">
-      <div class="max-w-7xl mx-auto flex justify-between items-center">
-        <h1 class="text-3xl font-bold">Task Management Dashboard</h1>
-        <a href="/tasks/create" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600">
-          Create New Task
-        </a>
-      </div>
-    </header>
-  
+          {loading && <p className="text-center text-lg text-gray-600">Loading tasks...</p>}
+          {error && <p className="text-center text-lg text-red-600">{error}</p>}
 
-    <main class="max-w-7xl mx-auto p-6">
-    
-      <div class="overflow-x-auto bg-white rounded-lg shadow-md mt-8">
-        <table class="w-full table-auto">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="py-3 px-6 text-left">Title</th>
-              <th class="py-3 px-6 text-left">Description</th>
-              <th class="py-3 px-6 text-left">Start Date</th>
-              <th class="py-3 px-6 text-left">End Date</th>
-              <th class="py-3 px-6 text-left">Status</th>
-              <th class="py-3 px-6 text-left">Progress</th>
-              <th class="py-3 px-6 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-      
-            <tr class="border-b hover:bg-gray-50">
-              <td class="py-3 px-6">Task Title</td>
-              <td class="py-3 px-6">Task description goes here...</td>
-              <td class="py-3 px-6">2024-11-01</td>
-              <td class="py-3 px-6">2024-11-10</td>
-              <td class="py-3 px-6">In Progress</td>
-              <td class="py-3 px-6">75%</td>
-              <td class="py-3 px-6 text-center">
-                <a href="/tasks/edit/taskId" class="bg-yellow-500 text-white py-1 px-3 rounded-lg mr-2 hover:bg-yellow-600">Edit</a>
-                <button class="bg-red-500 text-white py-1 px-3 rounded-lg hover:bg-red-600">Delete</button>
-              </td>
-            </tr>
+          {tasks.length === 0 && !loading && !error && (
+            <div className="flex flex-col justify-center items-center my-8">
+            <img
+              src={image}
+              alt="No tasks available"
+              className="w-[500px] h-auto"
+            />
+            <h2 className="mt-4 font-normal text-slate-400 text-4xl">Add new task</h2>
+          </div>
           
-          </tbody>
-        </table>
-      </div>
-  
- 
-      <div class="mt-4 flex justify-between items-center">
-        <button class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg disabled:opacity-50" disabled>Prev</button>
-        <span class="text-sm">Page 1 of 5</span>
-        <button class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg disabled:opacity-50">Next</button>
-      </div>
-    </main>
-  </div>
-  
-  )
-}
+          )}
 
-export default Dashboard
+          {tasks.length > 0 && (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {tasks.map((task) => (
+                <TaskList key={task._id} task={task} onDelete={handleDelete} />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    </>
+  );
+};
+
+export default Dashboard;
